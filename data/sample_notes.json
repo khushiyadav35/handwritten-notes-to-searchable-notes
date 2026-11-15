@@ -1,0 +1,56 @@
+[
+  {
+    "id": "note_os_01",
+    "title": "Operating Systems: CPU Scheduling & Process States",
+    "subject": "Operating Systems",
+    "tags": ["#os", "#scheduling", "#process", "#exam"],
+    "date_created": "2026-10-12",
+    "confidence": 93.5,
+    "content": "## Operating Systems: CPU Scheduling\n\nA Process is defined as a program in execution containing program counter, stack, registers, and data segment.\n- Five-state model: New -> Ready -> Running -> Waiting -> Terminated.\n- Scheduling Criteria: CPU Utilization, Throughput, Turnaround Time, Waiting Time, Response Time.\n- First-Come First-Served (FCFS): Non-preemptive, suffers from convoy effect.\n- Shortest Job First (SJF): Provably optimal in minimizing average waiting time.\n- Round Robin (RR): Preemptive scheduling using a fixed time quantum `q`.\n\nFormula: Turnaround Time = Completion Time - Arrival Time\nFormula: Waiting Time = Turnaround Time - Burst Time"
+  },
+  {
+    "id": "note_os_02",
+    "title": "Deadlock Characterization & Banker's Algorithm",
+    "subject": "Operating Systems",
+    "tags": ["#os", "#deadlock", "#bankers", "#midterm"],
+    "date_created": "2026-10-18",
+    "confidence": 91.2,
+    "content": "## Deadlocks in Concurrent Systems\n\nA Deadlock is a situation where a set of processes are blocked because each process is holding a resource and waiting for another resource held by another process.\nFour Coffman conditions must hold simultaneously for deadlock:\n1. Mutual Exclusion: At least one non-shareable resource.\n2. Hold and Wait: A process holding resources requests additional resources.\n3. No Preemption: Resources cannot be forcibly seized.\n4. Circular Wait: A closed chain of processes exists.\n\nBanker's Algorithm: Used for deadlock avoidance in multi-instance resource systems.\nSafety Criterion: Need[i, j] = Max[i, j] - Allocation[i, j] <= Available[j]"
+  },
+  {
+    "id": "note_dsa_01",
+    "title": "Graph Algorithms: Dijkstra Single Source Shortest Path",
+    "subject": "Data Structures",
+    "tags": ["#dsa", "#graphs", "#greedy", "#dijkstra"],
+    "date_created": "2026-10-24",
+    "confidence": 94.8,
+    "content": "## Dijkstra's Shortest Path Algorithm\n\nDijkstra algorithm finds the shortest path from a starting vertex `s` to all other vertices in a weighted directed graph with non-negative edge weights.\n- Strategy: Greedy approach maintaining a min-priority queue of tentative distances.\n- Time Complexity: O((V + E) log V) using a binary min-heap or Fibonacci heap.\n- Limitation: Does NOT work correctly with negative edge weights (Bellman-Ford algorithm must be used instead).\n\nKey Invariant: Once a vertex is extracted from the priority queue, its shortest distance is finalized."
+  },
+  {
+    "id": "note_dsa_02",
+    "title": "Self-Balancing Trees: AVL Trees & Rotations",
+    "subject": "Data Structures",
+    "tags": ["#dsa", "#trees", "#avl", "#balance"],
+    "date_created": "2026-11-02",
+    "confidence": 89.6,
+    "content": "## AVL Trees (Adelson-Velsky and Landis)\n\nAn AVL Tree is defined as a height-balanced binary search tree where the balance factor of every node is in {-1, 0, +1}.\n- Balance Factor Formula: BF = Height(Left Subtree) - Height(Right Subtree)\n- Rebalancing Rotations:\n  1. Left-Left (LL) Heavy: Single Right Rotation.\n  2. Right-Right (RR) Heavy: Single Left Rotation.\n  3. Left-Right (LR) Heavy: Double Rotation (Left rotate left child, then Right rotate node).\n  4. Right-Left (RL) Heavy: Double Rotation (Right rotate right child, then Left rotate node).\n- Lookup, Insertion, and Deletion time complexity: Strictly O(log n)."
+  },
+  {
+    "id": "note_dbms_01",
+    "title": "DBMS: ACID Properties & Normalization",
+    "subject": "Database Systems",
+    "tags": ["#dbms", "#acid", "#normalization", "#sql"],
+    "date_created": "2026-11-05",
+    "confidence": 92.4,
+    "content": "## Database Systems: Transactions & Normal Forms\n\nACID Properties guarantee transaction reliability:\n- Atomicity: All or nothing execution managed by transaction log.\n- Consistency: Database moves from one valid state to another.\n- Isolation: Concurrent transactions execute without interference (2-Phase Locking).\n- Durability: Committed changes survive system crashes.\n\nRelational Normalization:\n- 1NF: Atomic attributes, no repeating groups.\n- 2NF: 1NF + no partial dependency on composite primary key.\n- 3NF: 2NF + no transitive dependency (non-prime -> non-prime).\n- BCNF: For every functional dependency X -> Y, X must be a super key."
+  },
+  {
+    "id": "note_ml_01",
+    "title": "Machine Learning: Gradient Descent & Loss Optimization",
+    "subject": "Machine Learning",
+    "tags": ["#ml", "#gradient-descent", "#optimization", "#deep-learning"],
+    "date_created": "2026-11-10",
+    "confidence": 95.1,
+    "content": "## Optimization: Gradient Descent Variants\n\nGradient Descent is an iterative first-order optimization algorithm for finding a local minimum of a differentiable objective function.\nUpdate Rule: θ = θ - α * ∇J(θ), where α is the learning rate.\n- Batch Gradient Descent: Computes gradient over entire training dataset (slow for large data).\n- Stochastic Gradient Descent (SGD): Updates parameters after each training sample (noisy oscillations).\n- Mini-batch SGD: Balances vectorization efficiency with stochastic regularizing noise (batch size 32-256).\n- Adam Optimizer: Combines AdaGrad (adaptive learning rate) with RMSprop (exponential moving average of squared gradients)."
+  }
+]
