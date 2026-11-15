@@ -176,11 +176,17 @@ class NoteSummarizer:
                         answer=ans,
                         concept=concept
                     ))
-            elif "algorithm" in sent.lower() or "formula" in sent.lower() or "method" in sent.lower():
+            elif any(k in sent.lower() for k in ["algorithm", "formula", "method", "protocol", "model", "layer", "process", "system"]):
                 cards.append(Flashcard(
-                    question=f"State the core principle: {sent[:45]}...",
+                    question=f"Key Concept: {sent[:45]}...",
                     answer=sent,
                     concept="Core Concept"
+                ))
+            else:
+                cards.append(Flashcard(
+                    question=f"What is the significance of: {sent[:35]}...?",
+                    answer=sent,
+                    concept="Study Note"
                 ))
 
         return cards
