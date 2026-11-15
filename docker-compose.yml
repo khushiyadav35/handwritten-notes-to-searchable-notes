@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  notescribe:
+    build: .
+    container_name: notescribe-app
+    ports:
+      - "8501:8501"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

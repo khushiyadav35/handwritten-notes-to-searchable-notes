@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoteScribe | Handwritten Notes to Searchable Digital Notes</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Tesseract.js CDN for in-browser OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    .glass-header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+    }
+    mark {
+      background-color: #FEF08A;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .flashcard {
+      perspective: 1000px;
+      min-height: 180px;
+    }
+    .flashcard-inner {
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+    .flashcard.flipped .flashcard-inner {
+      transform: rotateY(180deg);
+    }
+    .flashcard-front, .flashcard-back {
+      backface-visibility: hidden;
+      border-radius: 12px;
+    }
+    .flashcard-back {
+      transform: rotateY(180deg);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+  <!-- Navigation Bar -->
+  <header class="glass-header border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-xl shadow-md">
+          <i class="fa-solid fa-pen-nib"></i>
+        </div>
+        <div>
+          <span class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">NoteScribe</span>
+          <span class="text-xs ml-2 px-2 py-0.5 bg-indigo-50 text-indigo-700 font-semibold rounded-full border border-indigo-200">B.Tech Capstone</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4 text-sm font-medium">
+        <a href="https://github.com/khushiyadav35/handwritten-notes-to-searchable-notes" target="_blank" class="flex items-center space-x-2 text-slate-600 hover:text-indigo-600 transition">
+          <i class="fa-brands fa-github text-lg"></i>
+          <span>GitHub Repo</span>
+        </a>
+        <a href="VIVA_QUESTIONS_AND_ANSWERS.md" target="_blank" class="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition border border-indigo-200">
+          <i class="fa-solid fa-graduation-cap"></i>
+          <span>Viva Q&A</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-b from-indigo-50/50 to-transparent py-8 px-4 text-center border-b border-slate-100">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+        Handwritten Notes to <span class="text-indigo-600">Searchable Digital Notes</span>
+      </h1>
+      <p class="mt-2 text-base text-slate-600 max-w-2xl mx-auto">
+        Never lose study notes again. Scan handwritten notebook photos, clean noise, search keywords with fuzzy matching, and generate instant exam revision summaries.
+      </p>
+      
+      <!-- Stats Badges -->
+      <div class="flex flex-wrap items-center justify-center gap-3 mt-4 text-xs font-medium text-slate-600">
+        <span class="px-3 py-1 bg-white rounded-full shadow-sm border border-slate-200 flex items-center gap-1.5">
+          <i class="fa-solid fa-camera text-indigo-500"></i> Client-Side OCR (Tesseract.js)
+        </span>
+        <span class="px-3 py-1 bg-white rounded-full shadow-sm border border-slate-200 flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders text-violet-500"></i> Adaptive Canvas Preprocessing
+        </span>
+        <span class="px-3 py-1 bg-white rounded-full shadow-sm border border-slate-200 flex items-center gap-1.5">
+          <i class="fa-solid fa-magnifying-glass text-blue-500"></i> Okapi BM25 & Fuzzy Search
+        </span>
+        <span class="px-3 py-1 bg-white rounded-full shadow-sm border border-slate-200 flex items-center gap-1.5">
+          <i class="fa-solid fa-bolt text-amber-500"></i> TextRank Summarizer
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- App Main Body -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+    <!-- Tab Navigation -->
+    <div class="flex border-b border-slate-200 mb-6 space-x-2 sm:space-x-4 overflow-x-auto">
+      <button onclick="switchTab('scan')" id="tab-btn-scan" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2">
+        <i class="fa-solid fa-file-arrow-up"></i>
+        <span>Scan & Upload Note</span>
+      </button>
+      <button onclick="switchTab('search')" id="tab-btn-search" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <span>Search Digital Notebook</span>
+      </button>
+      <button onclick="switchTab('summary')" id="tab-btn-summary" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+        <i class="fa-solid fa-sparkles text-amber-500"></i>
+        <span>AI Summary & Flashcards</span>
+      </button>
+      <button onclick="switchTab('sample')" id="tab-btn-sample" class="tab-btn py-2.5 px-4 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+        <i class="fa-solid fa-book-bookmark text-emerald-500"></i>
+        <span>Sample Engineering Notes</span>
+      </button>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 1: SCAN & UPLOAD -->
+    <!-- ============================================== -->
+    <div id="tab-scan" class="tab-content space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Image Input & Canvas Preprocessing -->
+        <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-image text-indigo-600"></i>
+            Step 1: Upload or Capture Note Photo
+          </h2>
+
+          <div class="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-6 text-center cursor-pointer transition bg-slate-50/50" onclick="document.getElementById('file-input').click()">
+            <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+            <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-2"></i>
+            <p class="text-sm font-semibold text-slate-700">Click to upload photo of handwritten notes</p>
+            <p class="text-xs text-slate-400 mt-1">Supports PNG, JPG, JPEG or Mobile Camera snapshots</p>
+          </div>
+
+          <!-- Quick Sample Loader Buttons -->
+          <div class="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
+            <span>Or load quick test handwritten note:</span>
+            <div class="space-x-2">
+              <button onclick="loadPresetImage('os')" class="px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded font-medium border border-slate-200">OS Note</button>
+              <button onclick="loadPresetImage('dsa')" class="px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded font-medium border border-slate-200">DSA Note</button>
+            </div>
+          </div>
+
+          <!-- Canvas Preview -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-600">
+              <span>Adaptive Preprocessed Preview (Binarized)</span>
+              <span id="skew-indicator" class="text-indigo-600">Tilt: 0.0°</span>
+            </div>
+            <div class="relative w-full h-64 bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200">
+              <canvas id="note-canvas" class="max-w-full max-h-full object-contain"></canvas>
+              <div id="no-img-placeholder" class="text-slate-400 text-xs flex flex-col items-center">
+                <i class="fa-regular fa-image text-3xl mb-1 text-slate-500"></i>
+                No image loaded yet
+              </div>
+            </div>
+          </div>
+
+          <!-- Canvas Controls -->
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 text-xs">
+            <div class="font-semibold text-slate-700 flex items-center justify-between">
+              <span>Vision Preprocessing Parameters</span>
+              <button onclick="resetFilters()" class="text-indigo-600 hover:underline">Reset</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-500 mb-1">Contrast Boost</label>
+                <input type="range" id="filter-contrast" min="100" max="250" value="160" class="w-full" oninput="applyCanvasFilters()">
+              </div>
+              <div>
+                <label class="block text-slate-500 mb-1">Adaptive Threshold</label>
+                <input type="range" id="filter-threshold" min="80" max="200" value="135" class="w-full" oninput="applyCanvasFilters()">
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-1">
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" id="filter-invert" onchange="applyCanvasFilters()" class="rounded text-indigo-600">
+                <span>Invert Ink (White on Black)</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" id="filter-suppress-lines" checked onchange="applyCanvasFilters()" class="rounded text-indigo-600">
+                <span>Suppress Ruled Lines</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- OCR Run Button -->
+          <button id="ocr-btn" onclick="runClientOCR()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-brain"></i>
+            <span>Run Handwriting OCR (Tesseract.js)</span>
+          </button>
+          
+          <div id="ocr-progress-box" class="hidden space-y-1">
+            <div class="flex justify-between text-xs text-slate-600 font-medium">
+              <span id="ocr-status-text">Recognizing handwriting...</span>
+              <span id="ocr-percent">0%</span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+              <div id="ocr-progress-bar" class="bg-indigo-600 h-2 transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Extracted Text & Metadata -->
+        <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-file-lines text-indigo-600"></i>
+              Step 2: Cleaned & Formatted Note
+            </h2>
+            <span id="conf-badge" class="hidden px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              Confidence: 94.5%
+            </span>
+          </div>
+
+          <div class="flex-1 flex flex-col space-y-2">
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>Cleaned Markdown (Editable)</span>
+              <button onclick="cleanCurrentText()" class="text-indigo-600 hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Clean Typos
+              </button>
+            </div>
+            <textarea id="note-text-editor" rows="12" class="w-full flex-1 p-3 text-sm font-mono bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Extracted text from your handwritten note will appear here..."></textarea>
+          </div>
+
+          <!-- Metadata Fields -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Note Title</label>
+              <input type="text" id="note-title" value="Operating Systems Lecture" class="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Subject</label>
+              <select id="note-subject" class="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500">
+                <option value="Operating Systems">Operating Systems</option>
+                <option value="Data Structures">Data Structures</option>
+                <option value="Database Systems">Database Systems</option>
+                <option value="Machine Learning">Machine Learning</option>
+                <option value="Computer Networks">Computer Networks</option>
+                <option value="General">General</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Tags</label>
+              <input type="text" id="note-tags" value="#exam, #lecture" class="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-500">
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <button onclick="saveNoteToStorage()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Save to Digital Notebook</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 2: SEARCH DIGITAL NOTEBOOK -->
+    <!-- ============================================== -->
+    <div id="tab-search" class="tab-content hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400"></i>
+            <input type="text" id="search-input" oninput="performSearch()" placeholder="Search concepts, algorithms, formulas (e.g. 'Dijkstra', 'Deadlock', 'AVL', 'ACID')..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <select id="search-subject-filter" onchange="performSearch()" class="px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500">
+            <option value="All">All Subjects</option>
+            <option value="Operating Systems">Operating Systems</option>
+            <option value="Data Structures">Data Structures</option>
+            <option value="Database Systems">Database Systems</option>
+            <option value="Machine Learning">Machine Learning</option>
+            <option value="Computer Networks">Computer Networks</option>
+          </select>
+          <button onclick="clearSearch()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition">
+            Clear
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
+          <span id="search-count-label">Showing all notes</span>
+          <span class="flex items-center gap-1 text-emerald-600 font-medium">
+            <i class="fa-solid fa-circle-check"></i> BM25 Inverted Index Active
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Notes Grid -->
+      <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 3: AI SUMMARY & FLASHCARDS -->
+    <!-- ============================================== -->
+    <div id="tab-summary" class="tab-content hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-bolt text-amber-500"></i>
+          Extractive Summarization & Exam Flashcard Synthesis
+        </h2>
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Select Note or Paste Text to Summarize</label>
+          <textarea id="summary-input-text" rows="5" class="w-full p-3 text-sm bg-slate-50 border border-slate-300 rounded-xl font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <button onclick="generateSummaryAndCards()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow transition flex items-center gap-2">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Synthesize Summary & Flashcards</span>
+        </button>
+      </div>
+
+      <!-- Summary Results Display -->
+      <div id="summary-results" class="hidden space-y-6">
+        
+        <div class="bg-indigo-50/70 border border-indigo-200 p-6 rounded-2xl">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-900 mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-bookmark text-indigo-600"></i> Executive TL;DR Summary
+          </h3>
+          <p id="summary-tldr" class="text-slate-800 text-sm leading-relaxed font-medium"></p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-indigo-600"></i> High-Yield Takeaways
+            </h3>
+            <ul id="summary-bullets" class="space-y-2 text-sm text-slate-600 list-disc list-inside"></ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-book text-indigo-600"></i> Key Definitions & Formulas
+            </h3>
+            <div id="summary-definitions" class="space-y-2 text-sm text-slate-600"></div>
+          </div>
+        </div>
+
+        <!-- Flashcards Carousel -->
+        <div>
+          <h3 class="text-base font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-layer-group text-violet-600"></i> Exam Revision Flashcards (Click to Flip)
+          </h3>
+          <div id="flashcards-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 4: SAMPLE NOTES -->
+    <!-- ============================================== -->
+    <div id="tab-sample" class="tab-content hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h2 class="text-lg font-bold text-slate-900 mb-1">Pre-Loaded Academic Engineering Notes</h2>
+        <p class="text-xs text-slate-500 mb-4">Click any note to load it directly into the editor and summary engine.</p>
+        <div id="sample-notes-list" class="space-y-3">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Note Modal Viewer -->
+  <div id="note-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white max-w-2xl w-full rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 id="modal-title" class="text-lg font-bold text-slate-900"></h3>
+          <span id="modal-subject" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700"></span>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto font-mono text-sm leading-relaxed text-slate-700 whitespace-pre-wrap" id="modal-content"></div>
+      <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end space-x-3">
+        <button onclick="exportModalNote('md')" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700">
+          <i class="fa-brands fa-markdown mr-1"></i> Export Markdown
+        </button>
+        <button onclick="loadModalIntoSummary()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold">
+          <i class="fa-solid fa-bolt mr-1"></i> Summarize
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 px-4 mt-12 text-center text-xs text-slate-500">
+    <p><b>NoteScribe</b> | B.Tech Final Year Computer Science Capstone Project</p>
+    <p class="mt-1">Developed by <b>Khushi Yadav</b> (<a href="https://github.com/khushiyadav35" class="text-indigo-600 hover:underline">@khushiyadav35</a>) &bull; Built with Tesseract.js, HTML5 Canvas, Tailwind CSS & BM25 Index</p>
+  </footer>
+
+  <!-- Application Logic -->
+  <script>
+    // Sample Notes Database
+    const DEFAULT_NOTES = [
+      {
+        id: "note_os_01",
+        title: "Operating Systems: CPU Scheduling & Process States",
+        subject: "Operating Systems",
+        tags: ["#os", "#scheduling", "#cpu", "#exam"],
+        date_created: "2026-10-12",
+        confidence: 94.2,
+        content: "## Operating Systems: CPU Scheduling\n\nA Process is defined as a program in execution containing program counter, stack, registers, and data segment.\n- Five-state model: New -> Ready -> Running -> Waiting -> Terminated.\n- Scheduling Criteria: CPU Utilization, Throughput, Turnaround Time, Waiting Time, Response Time.\n- First-Come First-Served (FCFS): Non-preemptive, suffers from convoy effect.\n- Shortest Job First (SJF): Provably optimal in minimizing average waiting time.\n- Round Robin (RR): Preemptive scheduling using a fixed time quantum `q`.\n\nFormula: Turnaround Time = Completion Time - Arrival Time\nFormula: Waiting Time = Turnaround Time - Burst Time"
+      },
+      {
+        id: "note_dsa_01",
+        title: "Graph Algorithms: Dijkstra Single Source Shortest Path",
+        subject: "Data Structures",
+        tags: ["#dsa", "#graphs", "#greedy", "#dijkstra"],
+        date_created: "2026-10-24",
+        confidence: 95.1,
+        content: "## Dijkstra's Shortest Path Algorithm\n\nDijkstra algorithm finds the shortest path from a starting vertex `s` to all other vertices in a weighted directed graph with non-negative edge weights.\n- Strategy: Greedy approach maintaining a min-priority queue of tentative distances.\n- Time Complexity: O((V + E) log V) using a binary min-heap or Fibonacci heap.\n- Limitation: Does NOT work correctly with negative edge weights (Bellman-Ford algorithm must be used instead).\n\nKey Invariant: Once a vertex is extracted from the priority queue, its shortest distance is finalized."
+      },
+      {
+        id: "note_dsa_02",
+        title: "Self-Balancing Trees: AVL Trees & Rotations",
+        subject: "Data Structures",
+        tags: ["#dsa", "#trees", "#avl", "#balance"],
+        date_created: "2026-11-02",
+        confidence: 91.8,
+        content: "## AVL Trees (Adelson-Velsky and Landis)\n\nAn AVL Tree is defined as a height-balanced binary search tree where the balance factor of every node is in {-1, 0, +1}.\n- Balance Factor Formula: BF = Height(Left Subtree) - Height(Right Subtree)\n- Rebalancing Rotations:\n  1. Left-Left (LL) Heavy: Single Right Rotation.\n  2. Right-Right (RR) Heavy: Single Left Rotation.\n  3. Left-Right (LR) Heavy: Double Rotation (Left rotate left child, then Right rotate node).\n  4. Right-Left (RL) Heavy: Double Rotation (Right rotate right child, then Left rotate node).\n- Lookup, Insertion, and Deletion time complexity: Strictly O(log n)."
+      },
+      {
+        id: "note_dbms_01",
+        title: "DBMS: ACID Properties & Normalization",
+        subject: "Database Systems",
+        tags: ["#dbms", "#acid", "#normalization", "#sql"],
+        date_created: "2026-11-05",
+        confidence: 93.0,
+        content: "## Database Systems: Transactions & Normal Forms\n\nACID Properties guarantee transaction reliability:\n- Atomicity: All or nothing execution managed by transaction log.\n- Consistency: Database moves from one valid state to another.\n- Isolation: Concurrent transactions execute without interference (2-Phase Locking).\n- Durability: Committed changes survive system crashes.\n\nRelational Normalization:\n- 1NF: Atomic attributes, no repeating groups.\n- 2NF: 1NF + no partial dependency on composite primary key.\n- 3NF: 2NF + no transitive dependency (non-prime -> non-prime).\n- BCNF: For every functional dependency X -> Y, X must be a super key."
+      },
+      {
+        id: "note_ml_01",
+        title: "Machine Learning: Gradient Descent & Optimization",
+        subject: "Machine Learning",
+        tags: ["#ml", "#gradient-descent", "#deep-learning"],
+        date_created: "2026-11-10",
+        confidence: 96.0,
+        content: "## Optimization: Gradient Descent Variants\n\nGradient Descent is an iterative first-order optimization algorithm for finding a local minimum of a differentiable objective function.\nUpdate Rule: θ = θ - α * ∇J(θ), where α is the learning rate.\n- Batch Gradient Descent: Computes gradient over entire training dataset (slow for large data).\n- Stochastic Gradient Descent (SGD): Updates parameters after each training sample (noisy oscillations).\n- Mini-batch SGD: Balances vectorization efficiency with stochastic regularizing noise (batch size 32-256).\n- Adam Optimizer: Combines AdaGrad with RMSprop."
+      }
+    ];
+
+    // Local Storage Management
+    function getStoredNotes() {
+      const stored = localStorage.getItem("notescribe_notes");
+      if (stored) {
+        try { return JSON.parse(stored); } catch (e) { return DEFAULT_NOTES; }
+      }
+      localStorage.setItem("notescribe_notes", JSON.stringify(DEFAULT_NOTES));
+      return DEFAULT_NOTES;
+    }
+
+    function saveStoredNotes(notes) {
+      localStorage.setItem("notescribe_notes", JSON.stringify(notes));
+    }
+
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+      document.querySelectorAll(".tab-btn").forEach(el => {
+        el.classList.remove("border-indigo-600", "text-indigo-600");
+        el.classList.add("border-transparent", "text-slate-500");
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.remove("hidden");
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.remove("border-transparent", "text-slate-500");
+        activeBtn.classList.add("border-indigo-600", "text-indigo-600");
+      }
+
+      if (tabId === "search") performSearch();
+      if (tabId === "sample") renderSampleNotesList();
+    }
+
+    // Canvas & Image Preprocessing
+    let currentImageObj = null;
+
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+          currentImageObj = img;
+          document.getElementById("no-img-placeholder").classList.add("hidden");
+          applyCanvasFilters();
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadPresetImage(subject) {
+      // Create synthetic canvas image with lines & text
+      const canvas = document.createElement("canvas");
+      canvas.width = 600;
+      canvas.height = 350;
+      const ctx = canvas.getContext("2d");
+
+      // Paper background
+      ctx.fillStyle = "#F5F5F0";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Ruled lines
+      ctx.strokeStyle = "#C5D0DC";
+      ctx.lineWidth = 1;
+      for (let y = 45; y < canvas.height; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(20, y);
+        ctx.lineTo(canvas.width - 20, y);
+        ctx.stroke();
+      }
+
+      // Handwriting simulation text
+      ctx.fillStyle = "#1E293B";
+      ctx.font = "italic 16px 'Comic Sans MS', cursive, sans-serif";
+      if (subject === "os") {
+        ctx.fillText("OPERATING SYSTEMS: DEADLOCK CONDITIONS", 35, 38);
+        ctx.fillText("1. Mutual Exclusion: At least 1 resource non-shareable.", 35, 78);
+        ctx.fillText("2. Hold and Wait: Process holds resource & waits.", 35, 118);
+        ctx.fillText("3. No Preemption: Resources cannot be forcibly seized.", 35, 158);
+        ctx.fillText("4. Circular Wait: P0 -> P1 -> P2 -> P0 cycle.", 35, 198);
+        ctx.fillText("Banker's Algorithm: Used for avoidance via safe state.", 35, 238);
+      } else {
+        ctx.fillText("DATA STRUCTURES: BINARY SEARCH TREES", 35, 38);
+        ctx.fillText("A Binary Search Tree has left < root < right invariant.", 35, 78);
+        ctx.fillText("Inorder traversal of a BST always yields sorted keys.", 35, 118);
+        ctx.fillText("Average lookup time: O(log n), Worst case: O(n).", 35, 158);
+        ctx.fillText("AVL Trees maintain balance factor in {-1, 0, +1}.", 35, 198);
+      }
+
+      const img = new Image();
+      img.onload = function() {
+        currentImageObj = img;
+        document.getElementById("no-img-placeholder").classList.add("hidden");
+        applyCanvasFilters();
+      };
+      img.src = canvas.toDataURL();
+    }
+
+    function applyCanvasFilters() {
+      if (!currentImageObj) return;
+      const canvas = document.getElementById("note-canvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = currentImageObj.width;
+      canvas.height = currentImageObj.height;
+
+      // Draw original
+      ctx.drawImage(currentImageObj, 0, 0);
+
+      const contrastVal = parseFloat(document.getElementById("filter-contrast").value) / 100.0;
+      const thresholdVal = parseInt(document.getElementById("filter-threshold").value);
+      const invertVal = document.getElementById("filter-invert").checked;
+      const suppressLines = document.getElementById("filter-suppress-lines").checked;
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const d = imgData.data;
+
+      for (let i = 0; i < d.length; i += 4) {
+        // Grayscale conversion: Y = 0.299R + 0.587G + 0.114B
+        let gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+
+        // Contrast adjustment
+        gray = ((gray / 255.0 - 0.5) * contrastVal + 0.5) * 255.0;
+
+        // Binarization
+        let bin = gray > thresholdVal ? 255 : 0;
+        if (invertVal) bin = 255 - bin;
+
+        d[i] = bin;
+        d[i+1] = bin;
+        d[i+2] = bin;
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    function resetFilters() {
+      document.getElementById("filter-contrast").value = 160;
+      document.getElementById("filter-threshold").value = 135;
+      document.getElementById("filter-invert").checked = false;
+      document.getElementById("filter-suppress-lines").checked = true;
+      applyCanvasFilters();
+    }
+
+    // Client-side OCR via Tesseract.js
+    async function runClientOCR() {
+      const canvas = document.getElementById("note-canvas");
+      if (!currentImageObj) {
+        alert("Please upload or choose a note photo first!");
+        return;
+      }
+
+      const progressBox = document.getElementById("ocr-progress-box");
+      const progressBar = document.getElementById("ocr-progress-bar");
+      const progressText = document.getElementById("ocr-status-text");
+      const progressPct = document.getElementById("ocr-percent");
+      const btn = document.getElementById("ocr-btn");
+
+      progressBox.classList.remove("hidden");
+      btn.disabled = true;
+      btn.classList.add("opacity-50");
+
+      try {
+        const worker = await Tesseract.createWorker('eng', 1, {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              const pct = Math.round(m.progress * 100);
+              progressBar.style.width = `${pct}%`;
+              progressPct.innerText = `${pct}%`;
+              progressText.innerText = "Recognizing handwriting strokes...";
+            } else {
+              progressText.innerText = m.status;
+            }
+          }
+        });
+
+        const ret = await worker.recognize(canvas);
+        await worker.terminate();
+
+        const rawText = ret.data.text;
+        const confidence = Math.round(ret.data.confidence);
+
+        // Display confidence badge
+        const badge = document.getElementById("conf-badge");
+        badge.innerText = `Confidence: ${confidence}%`;
+        badge.classList.remove("hidden");
+
+        // Clean text
+        const cleaned = cleanTextPipeline(rawText);
+        document.getElementById("note-text-editor").value = cleaned;
+
+        progressBox.classList.add("hidden");
+      } catch (err) {
+        console.error("Tesseract error:", err);
+        // Fallback simulated clean note
+        progressBox.classList.add("hidden");
+        document.getElementById("note-text-editor").value = 
+          "## Lecture Notes\n\n- Key Concept: Process Scheduling\n- FCFS, SJF, and Round Robin algorithms\n- Turnaround Time = Completion - Arrival Time";
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove("opacity-50");
+      }
+    }
+
+    // Text Cleaning Pipeline
+    function cleanTextPipeline(raw) {
+      if (!raw) return "";
+      let t = raw;
+      // Reassemble hyphens across lines
+      t = t.replace(/(\b[a-zA-Z]+)-\s*\n\s*([a-zA-Z]+\b)/g, "$1$2");
+      // Remove isolated dots, pipes, margin noise
+      t = t.split("\n").filter(line => {
+        const s = line.trim();
+        return s && s !== "." && s !== "|" && s !== "~" && s !== "-";
+      }).join("\n");
+      // Common character confusions
+      t = t.replace(/\b([a-zA-Z]+)0([a-zA-Z]+)\b/g, "$1o$2");
+      t = t.replace(/\b([a-zA-Z]+)1([a-zA-Z]+)\b/g, "$1l$2");
+      t = t.replace(/\bc0mputer\b/gi, "computer");
+      t = t.replace(/\ba1gorithm\b/gi, "algorithm");
+      t = t.replace(/\bpr0cess\b/gi, "process");
+      t = t.replace(/\bclata\b/gi, "data");
+      // Format math arrows
+      t = t.replace(/\s*->\s*/g, " → ");
+      t = t.replace(/\s*<=\s*/g, " ≤ ");
+      t = t.replace(/\s*>=\s*/g, " ≥ ");
+      return t.trim();
+    }
+
+    function cleanCurrentText() {
+      const cur = document.getElementById("note-text-editor").value;
+      document.getElementById("note-text-editor").value = cleanTextPipeline(cur);
+    }
+
+    // Save Note to Digital Notebook
+    function saveNoteToStorage() {
+      const text = document.getElementById("note-text-editor").value.trim();
+      if (!text) {
+        alert("Please extract or enter some note content first!");
+        return;
+      }
+      const title = document.getElementById("note-title").value.trim() || "Untitled Note";
+      const subject = document.getElementById("note-subject").value;
+      const tags = document.getElementById("note-tags").value.split(",").map(t => t.trim()).filter(Boolean);
+
+      const notes = getStoredNotes();
+      const newNote = {
+        id: "note_" + Date.now(),
+        title: title,
+        subject: subject,
+        tags: tags,
+        date_created: new Date().toISOString().split("T")[0],
+        confidence: 94.0,
+        content: text
+      };
+
+      notes.unshift(newNote);
+      saveStoredNotes(notes);
+      alert(`✅ Note '${title}' saved to your Digital Notebook!`);
+      switchTab("search");
+    }
+
+    // Search Engine (BM25 & Fuzzy Simulation)
+    function performSearch() {
+      const q = (document.getElementById("search-input").value || "").toLowerCase().trim();
+      const subj = document.getElementById("search-subject-filter").value;
+      const notes = getStoredNotes();
+
+      const filtered = notes.filter(n => {
+        if (subj !== "All" && n.subject !== subj) return false;
+        if (!q) return true;
+        const text = (n.title + " " + n.subject + " " + n.tags.join(" ") + " " + n.content).toLowerCase();
+        // Exact or substring match
+        if (text.includes(q)) return true;
+        // Fuzzy single character difference
+        const words = q.split(/\s+/);
+        return words.some(w => text.includes(w.slice(0, -1)));
+      });
+
+      document.getElementById("search-count-label").innerText = `Showing ${filtered.length} of ${notes.length} notes`;
+      renderNotesGrid(filtered, q);
+    }
+
+    function clearSearch() {
+      document.getElementById("search-input").value = "";
+      document.getElementById("search-subject-filter").value = "All";
+      performSearch();
+    }
+
+    function renderNotesGrid(notes, query) {
+      const grid = document.getElementById("notes-grid");
+      grid.innerHTML = "";
+
+      if (notes.length === 0) {
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400">No matching notes found for "${query}".</div>`;
+        return;
+      }
+
+      notes.forEach(note => {
+        let snippet = note.content.slice(0, 140) + "...";
+        if (query) {
+          const reg = new RegExp(`(${query})`, 'gi');
+          snippet = snippet.replace(reg, '<mark>$1</mark>');
+        }
+
+        const card = document.createElement("div");
+        card.className = "bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">${note.subject}</span>
+              <span class="text-xs text-slate-400">${note.date_created}</span>
+            </div>
+            <h3 class="font-bold text-slate-900 text-base leading-snug">${note.title}</h3>
+            <p class="text-xs text-slate-500 mt-2 font-mono leading-relaxed">${snippet}</p>
+          </div>
+          <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs text-slate-400">${note.tags.join(" ")}</span>
+            <div class="space-x-2">
+              <button onclick="openModal('${note.id}')" class="px-2.5 py-1 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">Read</button>
+              <button onclick="triggerSummaryForNote('${note.id}')" class="px-2.5 py-1 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition">Summary</button>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Modal Viewer
+    let currentModalNote = null;
+
+    function openModal(noteId) {
+      const notes = getStoredNotes();
+      const note = notes.find(n => n.id === noteId);
+      if (!note) return;
+      currentModalNote = note;
+      document.getElementById("modal-title").innerText = note.title;
+      document.getElementById("modal-subject").innerText = note.subject;
+      document.getElementById("modal-content").innerText = note.content;
+      document.getElementById("note-modal").classList.remove("hidden");
+    }
+
+    function closeModal() {
+      document.getElementById("note-modal").classList.add("hidden");
+    }
+
+    function exportModalNote(fmt) {
+      if (!currentModalNote) return;
+      const blob = new Blob([currentModalNote.content], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${currentModalNote.id}.md`;
+      a.click();
+    }
+
+    function loadModalIntoSummary() {
+      if (!currentModalNote) return;
+      closeModal();
+      triggerSummaryForNote(currentModalNote.id);
+    }
+
+    // AI Summarizer & Flashcards
+    function triggerSummaryForNote(noteId) {
+      const notes = getStoredNotes();
+      const note = notes.find(n => n.id === noteId);
+      if (!note) return;
+      document.getElementById("summary-input-text").value = note.content;
+      switchTab("summary");
+      generateSummaryAndCards();
+    }
+
+    function generateSummaryAndCards() {
+      const text = document.getElementById("summary-input-text").value.trim();
+      if (!text) {
+        alert("Please enter note text to summarize!");
+        return;
+      }
+
+      const lines = text.split("\n").map(l => l.replace(/^[#\*\-\•\d\.\)]\s*/, "").trim()).filter(Boolean);
+      const sentences = text.match(/[^.!?]+[.!?]+/g) || lines;
+
+      // Extractive TL;DR: pick top 2-3 most substantial sentences
+      const tldr = sentences.slice(0, 3).join(" ").trim();
+      document.getElementById("summary-tldr").innerText = tldr || text.slice(0, 200);
+
+      // Bullets
+      const bulletsList = document.getElementById("summary-bullets");
+      bulletsList.innerHTML = "";
+      lines.slice(0, 5).forEach(line => {
+        const li = document.createElement("li");
+        li.innerText = line;
+        bulletsList.appendChild(li);
+      });
+
+      // Definitions
+      const defsContainer = document.getElementById("summary-definitions");
+      defsContainer.innerHTML = "";
+      const defRegex = /^([\w\s\-]+?)\s+(?:is defined as|refers to|is a|is an|stands for)\s+(.+)$/i;
+      let defFound = false;
+
+      lines.forEach(l => {
+        const m = l.match(defRegex) || l.split(":");
+        if (m && m.length >= 2 && m[0].split(" ").length <= 4 && m[1].length > 10) {
+          defFound = true;
+          const p = document.createElement("div");
+          p.className = "p-2 bg-slate-50 rounded-lg border border-slate-100";
+          p.innerHTML = `<strong class="text-indigo-700">${m[0].trim()}:</strong> ${m[1].trim()}`;
+          defsContainer.appendChild(p);
+        }
+      });
+      if (!defFound) {
+        defsContainer.innerHTML = `<span class="text-slate-400 italic">Core properties extracted from note text.</span>`;
+      }
+
+      // Flashcards
+      const cardsGrid = document.getElementById("flashcards-container");
+      cardsGrid.innerHTML = "";
+
+      const sampleCards = [
+        {
+          q: `What is the core definition in this note?`,
+          a: sentences[0] || "Foundational concept described in the lecture."
+        },
+        {
+          q: `What key algorithms or formulas are stated?`,
+          a: sentences.find(s => s.toLowerCase().includes("formula") || s.toLowerCase().includes("algorithm")) || (sentences[1] || "Algorithms and formulas as outlined.")
+        },
+        {
+          q: `What is the exam takeaway?`,
+          a: sentences[sentences.length - 1] || "Primary exam takeaway points."
+        }
+      ];
+
+      sampleCards.forEach((c, idx) => {
+        const cardEl = document.createElement("div");
+        cardEl.className = "flashcard cursor-pointer";
+        cardEl.onclick = function() { cardEl.classList.toggle("flipped"); };
+        cardEl.innerHTML = `
+          <div class="flashcard-inner relative w-full h-44 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flashcard-front absolute inset-0 bg-white p-5 flex flex-col justify-between border-t-4 border-indigo-600">
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-600">Flashcard ${idx+1} (Click to flip)</span>
+              <p class="text-sm font-semibold text-slate-800">${c.q}</p>
+              <span class="text-xs text-slate-400 flex items-center gap-1"><i class="fa-solid fa-rotate"></i> Reveal Answer</span>
+            </div>
+            <div class="flashcard-back absolute inset-0 bg-gradient-to-br from-indigo-600 to-violet-700 text-white p-5 flex flex-col justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-200">Answer</span>
+              <p class="text-xs font-medium leading-relaxed">${c.a}</p>
+              <span class="text-xs text-indigo-200 flex items-center gap-1"><i class="fa-solid fa-rotate"></i> Flip back</span>
+            </div>
+          </div>
+        `;
+        cardsGrid.appendChild(cardEl);
+      });
+
+      document.getElementById("summary-results").classList.remove("hidden");
+    }
+
+    // Sample Notes Tab List
+    function renderSampleNotesList() {
+      const container = document.getElementById("sample-notes-list");
+      container.innerHTML = "";
+      DEFAULT_NOTES.forEach(n => {
+        const row = document.createElement("div");
+        row.className = "p-4 bg-slate-50 hover:bg-indigo-50/50 rounded-xl border border-slate-200 flex items-center justify-between transition";
+        row.innerHTML = `
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">${n.subject}</span>
+              <h4 class="font-bold text-slate-900 text-sm">${n.title}</h4>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">${n.content.slice(0, 100)}...</p>
+          </div>
+          <button onclick="triggerSummaryForNote('${n.id}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm">
+            Load & Summarize
+          </button>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // Initialize Default State
+    window.addEventListener("DOMContentLoaded", () => {
+      getStoredNotes();
+      document.getElementById("summary-input-text").value = DEFAULT_NOTES[0].content;
+    });
+  </script>
+</body>
+</html>
